@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f6f4ef">
+  <meta name="description" content="Theo dõi giá vàng miếng SJC Miền Bắc, vàng thế giới XAU/USD và xăng E10 RON95-III Vùng 1. Bảng giá gọn, rõ nguồn và thời điểm cập nhật.">
+  <meta name="color-scheme" content="light">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="stylesheet" href="/style.css">
+  <title>Giá Hôm Nay | SJC, XAU/USD, E10 RON95</title>
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <div class="site-shell">
+    <header class="site-header">
+      <a class="identity" href="/" aria-label="Giá Hôm Nay - Trang chủ">
+        <span class="identity-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="m7 22 6-12 5 8 3-5 4 9" stroke="currentColor" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 26h20" stroke="currentColor" stroke-width="2.7" stroke-linecap="round"/></svg></span>
+        <span class="identity-name">giá hôm nay<span class="brand-period">.</span></span>
+      </a>
+      <div class="header-right">
+        <span class="header-location">Hà Nội, Việt Nam</span>
+        <button class="refresh-button" type="button" id="refresh" aria-label="Tải lại bảng giá" title="Tải lại bảng giá đã lưu">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 11a8 8 0 0 0-14-5L4 8"/><path d="M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14 5l2-2"/><path d="M20 20v-4h-4"/></svg>
+          <span>Tải lại</span>
+        </button>
+      </div>
+    </header>
+
+    <main>
+      <section class="intro" aria-labelledby="page-title">
+        <div class="intro-main">
+          <p class="overline">BẢNG GIÁ THAM KHẢO</p>
+          <h1 id="page-title">Giá hôm nay.<br><span>Chỉ những gì cần xem.</span></h1>
+          <p class="intro-description">Vàng trong nước, vàng quốc tế và giá xăng. Một trang, ba mức giá quan trọng.</p>
+        </div>
+        <div class="intro-date">
+          <span class="date-small">Hôm nay</span>
+          <span id="today-date">Đang tải ngày...</span>
+          <span class="date-zone">Giờ Việt Nam, GMT+7</span>
+        </div>
+      </section>
+
+      <div class="notice" id="page-status" role="status" aria-live="polite">
+        <span class="notice-icon" aria-hidden="true">i</span>
+        <span id="page-status-text">Đang tải bảng giá đã lưu...</span>
+      </div>
+
+      <section class="dashboard" aria-label="Ba mặt hàng đang theo dõi">
+        <article class="card card-sjc" aria-labelledby="sjc-title">
+          <div class="card-top">
+            <span class="card-symbol card-symbol-gold" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M9 10h14l4 13H5l4-13Z" stroke="currentColor" stroke-width="1.6"/><path d="M12 16h8M14 19h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <div class="card-heading">
+              <p class="card-kicker">VÀNG TRONG NƯỚC</p>
+              <h2 id="sjc-title">Vàng miếng SJC</h2>
+              <p class="card-subtitle">1 lượng - SJC Miền Bắc, tham khảo Hà Nội</p>
+            </div>
+            <span class="card-currency">VNĐ / lượng</span>
+          </div>
+          <div class="sjc-prices">
+            <div class="price-block">
+              <p class="price-caption">Mua vào</p>
+              <p class="price-large" id="sjc-buy">--</p>
+              <p class="price-unit">đồng / lượng</p>
+            </div>
+            <div class="price-divider" aria-hidden="true"></div>
+            <div class="price-block">
+              <p class="price-caption">Bán ra</p>
+              <p class="price-large" id="sjc-sell">--</p>
+              <p class="price-unit">đồng / lượng</p>
+            </div>
+          </div>
+          <div class="sjc-spread">
+            <span>Chênh lệch mua - bán</span>
+            <strong id="sjc-spread">--</strong>
+          </div>
+          <div class="card-foot">
+            <div class="card-status">
+              <span id="sjc-status">Chờ dữ liệu</span>
+              <span id="sjc-time">Chưa có lần kiểm tra thành công</span>
+            </div>
+            <a href="https://giavang.org/trong-nuoc/sjc/" id="sjc-source" target="_blank" rel="noopener noreferrer">Xem nguồn <span aria-hidden="true">↗</span></a>
+          </div>
+        </article>
+
+        <div class="secondary-cards">
+          <article class="card card-light" aria-labelledby="xau-title">
+            <div class="card-top card-top-secondary">
+              <span class="card-symbol card-symbol-world" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><circle cx="16" cy="16" r="10" stroke="currentColor" stroke-width="1.7"/><path d="M6 16h20M16 6c-5 5-5 15 0 20M16 6c5 5 5 15 0 20" stroke="currentColor" stroke-width="1.5"/></svg></span>
+              <div class="card-heading">
+                <p class="card-kicker">VÀNG QUỐC TẾ</p>
+                <h2 id="xau-title">Gold Spot <span class="title-code">XAU/USD</span></h2>
+              </div>
+            </div>
+            <div class="secondary-figure">
+              <span class="price-medium" id="xau-price">--</span>
+              <span class="secondary-unit">USD / oz</span>
+            </div>
+            <div class="card-foot">
+              <div class="card-status">
+                <span id="xau-status">Chờ dữ liệu</span>
+                <span id="xau-time">Chưa có lần kiểm tra thành công</span>
+              </div>
+              <a href="https://gold-api.com/docs" id="xau-source" target="_blank" rel="noopener noreferrer">Gold API <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+
+          <article class="card card-light" aria-labelledby="fuel-title">
+            <div class="card-top card-top-secondary">
+              <span class="card-symbol card-symbol-fuel" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none"><path d="M8 25V9a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v16M6 25h17M10 11h9v6h-9z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="m21 12 4 4v7a2 2 0 0 0 4 0v-9l-3-3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <div class="card-heading">
+                <p class="card-kicker">XĂNG TRONG NƯỚC</p>
+                <h2 id="fuel-title">E10 RON95-III</h2>
+              </div>
+              <span class="fuel-area">Vùng 1</span>
+            </div>
+            <div class="secondary-figure">
+              <span class="price-medium" id="fuel-price">--</span>
+              <span class="secondary-unit">VNĐ / lít</span>
+            </div>
+            <div class="card-foot">
+              <div class="card-status">
+                <span id="fuel-status">Chờ dữ liệu</span>
+                <span id="fuel-time">Chưa có lần kiểm tra thành công</span>
+              </div>
+              <a href="https://webgia.tv/xang-dau/petrolimex" id="fuel-source" target="_blank" rel="noopener noreferrer">Nguồn giá <span aria-hidden="true">↗</span></a>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="how-it-works" aria-label="Thông tin về dữ liệu">
+        <div class="how-intro">
+          <p class="how-title">Cập nhật định kỳ, rõ nguồn.</p>
+          <p class="how-copy">Website chỉ tải lại dữ liệu đã được kiểm tra. Giá có thể giữ nguyên giữa các lần công bố.</p>
+        </div>
+        <div class="schedule-items">
+          <div class="schedule-item"><span>Vàng SJC và quốc tế</span><strong>1 giờ / lần</strong></div>
+          <div class="schedule-item"><span>Xăng Petrolimex</span><strong>6 giờ / lần</strong></div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div>Giá Hôm Nay <span aria-hidden="true">/</span> Theo dõi giá đơn giản.</div>
+      <p>Giá chỉ mang tính tham khảo, không phải báo giá giao dịch. SJC dùng phân vùng Miền Bắc cho Hà Nội; xăng dùng giá Petrolimex Vùng 1.</p>
+    </footer>
+  </div>
+</body>
+</html>
