@@ -69,7 +69,9 @@ function vietnamDate(date, time = "00:00") {
   const clock = time?.match(/^(\d{2}):(\d{2})(?::(\d{2}))?$/);
   if (!match || !clock) return null;
   const [, dd, mm, yyyy] = match.map(Number);
-  const [, hh, min, ss = 0] = clock.map(Number);
+  const hh = Number(clock[1]);
+  const min = Number(clock[2]);
+  const ss = clock[3] === undefined ? 0 : Number(clock[3]);
   if (mm < 1 || mm > 12 || dd < 1 || dd > 31 || hh > 23 || min > 59 || ss > 59) return null;
   const utc = Date.UTC(yyyy, mm - 1, dd, hh - 7, min, ss);
   const check = new Date(utc + 7 * 3600000);
