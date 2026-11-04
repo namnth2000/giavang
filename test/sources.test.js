@@ -1,22 +1,40 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseSjc, parseFuel, parseXau } from "../src/sources.js";
-import { shouldCollectFuel, updateSnapshot } from "../src/index.js";
+import { SOURCES, parseSjc, parseFuel, parseXau } from "../src/sources.js";
+import { normalizeSnapshot, shouldCollectFuel, updateSnapshot } from "../src/index.js";
 
-test("SJC selects Miền Bắc, not Hồ Chí Minh or jewelry", () => {
-  const html = `<div>Cập nhật lúc 12:45:03 03/11/2026</div><table>
-  <tr><td>Hồ Chí Minh</td><td>Vàng SJC 1L, 10L, 1KG</td><td>138.600</td><td>141.600</td></tr>
-  <tr><td>Miền Bắc</td><td>Vàng SJC 1L, 10L, 1KG</td><td>137.600</td><td>140.600</td></tr>
-  <tr><td>Miền Trung</td><td>Vàng SJC 1L, 10L, 1KG</td><td>136.600</td><td>139.600</td></tr>
+test("official SJC online quote: exact bar row, full VND values", () => {
+  const html = `<h1>Bảng giá vàng SJC</h1><p>Cập nhật lúc: 11:16 03/11/2026</p>
+  <p>Đơn vị tính: VNĐ / lượng</p>
+  <table><tr><th>Loại vàng</th><th>Mua</th><th>Bán</th></tr>
+    <tr><td>Vàng SJC 1L, 10L, 1KG</td><td>137,600,000</td><td>140,600,000</td></tr>
+    <tr><td>Vàng SJC 5 chỉ</td><td>137,600,000</td><td>140,620,000</td></tr>
+    <tr><td>Vàng nhẫn SJC 99,99%</td><td>134,000,000</td><td>138,000,000</td></tr>
   </table>`;
-  const price = parseSjc(html);
-  assert.equal(price.buy, 137600000);
-  assert.equal(price.sell, 140600000);
-  assert.equal(price.quotedAt, "2026-11-03T05:45:03.000Z");
+  assert.deepEqual(parseSjc(html), {
+    buy: 137600000, sell: 140600000, quotedAt: "2026-11-03T04:16:00.000Z",
+  });
 });
 
-test("SJC refuses page missing the correct region", () => {
-  assert.throws(() => parseSjc("<tr><td>Hồ Chí Minh</td><td>Vàng SJC 1L, 10L, 1KG</td><td>138.600</td><td>141.600</td></tr>"));
+test("official SJC homepage fallback: grouped rows in thousand VND", () => {
+  const html = `<p>08:36 03/11/2026 (ĐVT: ngàn đồng/ lượng)</p><table>
+  <tr><td>Hồ Chí Minh</td></tr>
+  <tr><td>Vàng SJC 1L, 10L, 1KG</td><td>138,200</td><td>141,200</td></tr>
+  <tr><td>Vàng SJC 5 chỉ</td><td>138,200</td><td>141,220</td></tr>
+  <tr><td>Miền Bắc</td></tr>
+  <tr><td>Vàng SJC 1L, 10L, 1KG</td><td>138,200</td><td>141,200</td></tr>
+  </table>`;
+  assert.deepEqual(parseSjc(html), {
+    buy: 138200000, sell: 141200000, quotedAt: "2026-11-03T01:36:00.000Z",
+  });
+});
+
+test("official SJC parser rejects wrong products and ambiguous regional quotes", () => {
+  assert.throws(() => parseSjc("<tr><td>Vàng nhẫn SJC 99,99%</td><td>130,000,000</td><td>140,000,000</td></tr>"));
+  assert.throws(() => parseSjc(`<table>
+  <tr><td>Vàng SJC 1L, 10L, 1KG</td><td>138,200</td><td>141,200</td></tr>
+  <tr><td>Vàng SJC 1L, 10L, 1KG</td><td>139,200</td><td>142,200</td></tr>
+  </table>`));
 });
 
 test("fuel selects III, Vùng 1, not V or change column", () => {
@@ -44,7 +62,7 @@ test("partial source failures preserve last valid prices and flag error", async 
   const previous = {
     version: 1,
     prices: {
-      sjc: { buy: 135000000, sell: 138000000, checkedAt: "2026-11-02T00:00:00Z" },
+      sjc: { buy: 135000000, sell: 138000000, checkedAt: "2026-11-02T00:00:00Z", source: { url: SOURCES.sjc.url } },
       fuel: { price: 24000, checkedAt: "2026-11-02T00:00:00Z" },
     },
   };
@@ -58,4 +76,14 @@ test("partial source failures preserve last valid prices and flag error", async 
   assert.equal(updated.prices.xau.price, 4100);
   assert.equal(updated.prices.fuel.price, 24000);
   assert.equal(updated.prices.fuel.lastAttemptAt, undefined);
+});
+
+test("legacy third-party SJC cache is discarded, not mislabeled official", () => {
+  const snapshot = normalizeSnapshot({ version: 1, generatedAt: "2026-11-03T00:00:00Z", prices: {
+    sjc: { buy: 135000000, sell: 138000000, source: { url: "https://giavang.org/trong-nuoc/sjc/" } },
+  } });
+  assert.equal(snapshot.prices.sjc.buy, null);
+  assert.equal(snapshot.prices.sjc.sell, null);
+  assert.equal(snapshot.prices.sjc.source.url, SOURCES.sjc.url);
+  assert.equal(snapshot.prices.sjc.region, "Việt Nam");
 });
