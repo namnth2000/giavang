@@ -78,32 +78,59 @@ function vietnamDate(date, time = "00:00") {
   return new Date(utc).toISOString();
 }
 
-// Match the exact official gold-bar product; never substitute rings or jewelry.
-export function parseSjc(html) {
-  const rows = extractRows(html);
-  const product = /^Vàng\s+SJC\s*1L\s*,\s*10L\s*,\s*1KG$/i;
-  const quotes = rows.flatMap((cells) => {
-    const index = cells.findIndex((cell) => product.test(cell));
+// Only accept the exact gold-bar product. SJC serves both full price tables
+// and partial/flat HTML depending on endpoint and rendering path.
+const SJC_BAR = /Vàng\s+SJC\s*1L\s*,\s*10L\s*,\s*1KG(?=\s|$)/i;
+
+function sjcQuotesFromRows(html) {
+  return extractRows(html).flatMap((cells) => {
+    const index = cells.findIndex((cell) => SJC_BAR.test(cell) && cell.replace(SJC_BAR, "").trim() === "");
     if (index < 0) return [];
     const values = cells.slice(index + 1)
       .map((cell) => valueFromCell(cell, 50_000_000, 400_000_000))
       .filter((value) => value !== null);
-    if (values.length < 2 || values[0] > values[1]) return [];
-    return [{ buy: values[0], sell: values[1] }];
+    return values.length >= 2 && values[0] <= values[1]
+      ? [{ buy: values[0], sell: values[1] }] : [];
   });
-  if (!quotes.length) throw new Error("Official SJC 1L, 10L, 1KG price not found");
+}
 
-  // The price page publishes one product quote. The official homepage may list
-  // multiple regions; only use that fallback if all visible quotes agree.
+function sjcQuotesFromFlatHtml(html) {
+  // Some homepage templates render prices inside div/span tags instead of tr/td.
+  // Restrict both numeric fields to the beginning of the matching product's text.
+  // Never read a subsequent product's price if this product has no quote.
+  const cleaned = html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, " ")
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, " ");
+  const content = plain(cleaned);
+  const matches = [...content.matchAll(/Vàng\s+SJC\s*1L\s*,\s*10L\s*,\s*1KG(?=\s|$)/gi)];
+  const quotes = [];
+  for (const match of matches) {
+    const rest = content.slice(match.index + match[0].length, match.index + match[0].length + 110);
+    // Supported representations: "137,600,000 140,600,000" and
+    // homepage "137,600+0 140,600+0" (thousand VND, change suffix).
+    const pair = rest.match(/^\s*(\d{1,3}(?:[.,]\d{3}){1,2})(?:\s*[+-]\s*\d{1,3}(?:[.,]\d{3})?)?\s+(\d{1,3}(?:[.,]\d{3}){1,2})(?!\d)/);
+    if (!pair) continue;
+    const buy = valueFromCell(pair[1], 50_000_000, 400_000_000);
+    const sell = valueFromCell(pair[2], 50_000_000, 400_000_000);
+    if (buy !== null && sell !== null && buy <= sell) quotes.push({ buy, sell });
+  }
+  return quotes;
+}
+
+export function parseSjc(html) {
+  const rows = sjcQuotesFromRows(html);
+  const quotes = rows.length ? rows : sjcQuotesFromFlatHtml(html);
+  if (!quotes.length) throw new Error("SJC official page did not include gold-bar prices in readable HTML");
+  // We present a nationwide quote, so do not silently select a region when
+  // official price entries disagree.
   const { buy, sell } = quotes[0];
   if (quotes.some((quote) => quote.buy !== buy || quote.sell !== sell)) {
     throw new Error("Official SJC quotes differ by region; no common price");
   }
 
-  const content = plain(html);
+  const text = plain(html);
   const stamp =
-    content.match(/Cập nhật lúc\s*:?\s*(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})/i) ||
-    content.match(/(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})\s*\(\s*ĐVT\s*:/i);
+    text.match(/Cập nhật lúc\s*:?\s*(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})/i) ||
+    text.match(/(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})\s*\(\s*ĐVT\s*:/i);
   return { buy, sell, quotedAt: stamp ? vietnamDate(stamp[2], stamp[1]) : null };
 }
 
@@ -146,20 +173,25 @@ async function request(url, json = false) {
 }
 
 export async function fetchSjc() {
-  // Prefer the exact official online price page. If its server response contains
-  // only an empty JS-rendered shell, retry the official SJC homepage.
-  try {
-    return parseSjc(await request(SOURCES.sjc.url));
-  } catch (primaryError) {
+  // Both hostnames and the homepage belong to SJC itself. The online page
+  // occasionally responds with a JS-only shell while the homepage has HTML quotes.
+  // Keep the official data requirement, rather than using an unverified scraper.
+  const endpoints = [
+    SOURCES.sjc.url,
+    "https://www.sjc.com.vn/gia-vang-online",
+    "https://sjc.com.vn/",
+    "https://www.sjc.com.vn/",
+  ];
+  let lastError;
+  for (const endpoint of endpoints) {
     try {
-      return parseSjc(await request("https://sjc.com.vn/"));
-    } catch (fallbackError) {
-      throw new Error(
-        "Unable to read official SJC prices from either official page: " +
-        String(primaryError) + "; " + String(fallbackError),
-      );
+      return parseSjc(await request(endpoint));
+    } catch (error) {
+      lastError = error;
+      console.warn("SJC official price endpoint unavailable:", endpoint, String(error));
     }
   }
+  throw new Error("No readable gold-bar quote on official SJC pages: " + String(lastError));
 }
 
 export async function fetchXau() {
