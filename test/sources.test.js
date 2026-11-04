@@ -87,3 +87,24 @@ test("legacy third-party SJC cache is discarded, not mislabeled official", () =>
   assert.equal(snapshot.prices.sjc.source.url, SOURCES.sjc.url);
   assert.equal(snapshot.prices.sjc.region, "Việt Nam");
 });
+
+test("SJC official homepage with div/span text instead of table rows", () => {
+  const html = `<div>16:45 03/11/2026 (ĐVT: ngàn đồng/ lượng)</div>
+  <section><strong>Hồ Chí Minh</strong>
+  <div class="item"><span>Vàng SJC 1L, 10L, 1KG</span><span>137,600</span><span>140,600</span></div>
+  <div class="item"><span>Vàng SJC 5 chỉ</span><span>137,600</span><span>140,620</span></div>
+  <strong>Miền Bắc</strong>
+  <div class="item"><span>Vàng SJC 1L, 10L, 1KG</span><span>137,600</span><span>140,600</span></div>
+  </section>`;
+  assert.deepEqual(parseSjc(html), {
+    buy: 137600000, sell: 140600000, quotedAt: "2026-11-03T09:45:00.000Z",
+  });
+});
+
+test("SJC flat parser rejects missing quote, mismatched regions or script sample", () => {
+  assert.throws(() => parseSjc(`<div>Vàng SJC 1L, 10L, 1KG</div>
+    <div>Vàng SJC 5 chỉ 137,600 140,620</div>`));
+  assert.throws(() => parseSjc(`<div>Vàng SJC 1L, 10L, 1KG 137,600 140,600</div>
+    <div>Vàng SJC 1L, 10L, 1KG 139,600 142,600</div>`));
+  assert.throws(() => parseSjc(`<script>var demo = "Vàng SJC 1L, 10L, 1KG 137,600 140,600";</script>`));
+});
