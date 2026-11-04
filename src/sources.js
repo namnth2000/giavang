@@ -1,10 +1,9 @@
 // Price collectors and parsers. No dependencies, no assumed prices.
 export const SOURCES = Object.freeze({
   sjc: {
-    name: "Giavang.org - SJC Miền Bắc",
-    url: "https://giavang.org/trong-nuoc/sjc/",
-    officialUrl: "https://sjc.com.vn/gia-vang-online",
-    region: "Miền Bắc (tham khảo Hà Nội)",
+    name: "SJC - website chính thức",
+    url: "https://sjc.com.vn/gia-vang-online",
+    region: "Việt Nam",
     unit: "VND/lượng",
     intervalHours: 1,
   },
@@ -79,28 +78,33 @@ function vietnamDate(date, time = "00:00") {
   return new Date(utc).toISOString();
 }
 
+// Match the exact official gold-bar product; never substitute rings or jewelry.
 export function parseSjc(html) {
   const rows = extractRows(html);
-  let region = "";
-  let prices = null;
-  for (const cells of rows) {
-    const first = cells[0]?.toLocaleLowerCase("vi") ?? "";
-    if (/^(miền bắc|hồ chí minh|hạ long|hải phòng|miền trung|huế|quảng ngãi|nha trang|biên hòa|miền tây|bạc liêu|cà mau)$/.test(first)) {
-      region = first;
-    }
-    if (region !== "miền bắc") continue;
-    const index = cells.findIndex((cell) => /vàng sjc\s*1l\s*,\s*10l\s*,\s*1kg/i.test(cell));
-    if (index < 0) continue;
-    const nums = cells.slice(index + 1).map((cell) => valueFromCell(cell, 50_000_000, 400_000_000)).filter((v) => v !== null);
-    if (nums.length >= 2 && nums[0] <= nums[1]) {
-      prices = { buy: nums[0], sell: nums[1] };
-      break;
-    }
+  const product = /^Vàng\s+SJC\s*1L\s*,\s*10L\s*,\s*1KG$/i;
+  const quotes = rows.flatMap((cells) => {
+    const index = cells.findIndex((cell) => product.test(cell));
+    if (index < 0) return [];
+    const values = cells.slice(index + 1)
+      .map((cell) => valueFromCell(cell, 50_000_000, 400_000_000))
+      .filter((value) => value !== null);
+    if (values.length < 2 || values[0] > values[1]) return [];
+    return [{ buy: values[0], sell: values[1] }];
+  });
+  if (!quotes.length) throw new Error("Official SJC 1L, 10L, 1KG price not found");
+
+  // The price page publishes one product quote. The official homepage may list
+  // multiple regions; only use that fallback if all visible quotes agree.
+  const { buy, sell } = quotes[0];
+  if (quotes.some((quote) => quote.buy !== buy || quote.sell !== sell)) {
+    throw new Error("Official SJC quotes differ by region; no common price");
   }
-  if (!prices) throw new Error("Missing verified SJC Miền Bắc 1L row");
-  const text = plain(html);
-  const stamp = text.match(/Cập nhật lúc\s*:?\s*(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})/i);
-  return { ...prices, quotedAt: stamp ? vietnamDate(stamp[2], stamp[1]) : null };
+
+  const content = plain(html);
+  const stamp =
+    content.match(/Cập nhật lúc\s*:?\s*(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})/i) ||
+    content.match(/(\d{2}:\d{2}(?::\d{2})?)\s+(\d{2}\/\d{2}\/\d{4})\s*\(\s*ĐVT\s*:/i);
+  return { buy, sell, quotedAt: stamp ? vietnamDate(stamp[2], stamp[1]) : null };
 }
 
 export function parseFuel(html) {
@@ -142,7 +146,20 @@ async function request(url, json = false) {
 }
 
 export async function fetchSjc() {
-  return parseSjc(await request(SOURCES.sjc.url));
+  // Prefer the exact official online price page. If its server response contains
+  // only an empty JS-rendered shell, retry the official SJC homepage.
+  try {
+    return parseSjc(await request(SOURCES.sjc.url));
+  } catch (primaryError) {
+    try {
+      return parseSjc(await request("https://sjc.com.vn/"));
+    } catch (fallbackError) {
+      throw new Error(
+        "Unable to read official SJC prices from either official page: " +
+        String(primaryError) + "; " + String(fallbackError),
+      );
+    }
+  }
 }
 
 export async function fetchXau() {
