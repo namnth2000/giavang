@@ -16,7 +16,7 @@ Không có đăng nhập, biểu đồ, lịch sử, quảng cáo, React hay dat
 | XAU/USD | [Gold API](https://gold-api.com/docs), endpoint `/price/XAU` | Gold API |
 | Xăng | [WebGia.TV - Petrolimex](https://webgia.tv/xang-dau/petrolimex), lấy **đúng E10 RON 95-III / Vùng 1** | [Petrolimex chính thức](https://petrolimex.com.vn/ndi/gia-ban-le.html) |
 
-**Quan trọng:** Không chọn giá SJC theo tỉnh/thành. Bộ thu thập ưu tiên bảng giá vàng chính thức tại `/gia-vang-online`; nếu trang trả HTML không có dòng giá, thử trang chủ SJC như một nguồn dự phòng **cũng chính thức**. Chỉ sử dụng các dòng vàng miếng 1L khớp nhau khi trang chủ có nhiều khu vực; nếu khác nhau sẽ báo lỗi thay vì tự nhận là giá chung. Giá xăng Vùng 1 là mức Petrolimex công bố, không đảm bảo áp dụng tại mọi cửa hàng độc lập.
+**Quan trọng:** Không chọn giá SJC theo tỉnh/thành. Bộ thu thập lần lượt thử `sjc.com.vn/gia-vang-online`, `www.sjc.com.vn/gia-vang-online` và hai trang chủ SJC chính thức. Parser hỗ trợ cả bảng `tr/td` và dòng giá dạng `div/span`; khi không có giá sẽ báo lỗi thay vì lấy số ở sản phẩm kế tiếp. Chỉ sử dụng các dòng vàng miếng 1L khớp nhau khi trang chủ có nhiều khu vực; nếu khác nhau sẽ báo lỗi thay vì tự nhận là giá chung. Giá xăng Vùng 1 là mức Petrolimex công bố, không đảm bảo áp dụng tại mọi cửa hàng độc lập.
 
 SJC được lấy trực tiếp từ website chính thức (HTML, không phải API công khai được bảo đảm); giá xăng vẫn dùng website tổng hợp bên thứ ba. HTML có thể thay đổi, chặn bot, tải bằng JavaScript hoặc có điều khoản hạn chế tái sử dụng. Cần kiểm tra điều khoản và chất lượng nguồn trước khi vận hành công khai. Không cung cấp giá giả hoặc tự suy luận từ loại sản phẩm khác. Khi parser lỗi, giữ lần ghi hợp lệ trước và gắn cảnh báo. Khi đổi từ nguồn SJC cũ sang nguồn chính thức, hệ thống **xóa giá SJC đã cache từ nguồn bên thứ ba** để không gắn nhãn sai nguồn.
 
@@ -60,9 +60,17 @@ wrangler.jsonc        # Worker, KV binding và cron
 ## Kiểm tra vận hành
 
 - Nếu XAU không hiện: kiểm tra endpoint Gold API hoặc response shape.
-- Nếu SJC không hiện: kiểm tra trang [giá vàng chính thức](https://sjc.com.vn/gia-vang-online) hoặc trang chủ SJC có trả về dòng `Vàng SJC 1L, 10L, 1KG` trong HTML mà Worker đọc được hay không. Website có thể tải bảng giá bằng JavaScript, khi đó parser HTML sẽ không lấy được và giữ trạng thái chưa có dữ liệu.
+- Nếu SJC hiển thị giá cũ: xem mốc **Đối chiếu** (lần lấy thành công) và **Niêm yết** (mốc SJC công bố). Nếu có **Lần kiểm tra mới lỗi**, Worker chưa lấy được giá mới và vẫn giữ giá đã xác thực. Bấm Tải lại chỉ đọc KV, không gọi trực tiếp SJC.
+- Nếu SJC không hiện: kiểm tra `wrangler tail` và HTML thực tế trả về từ [giá vàng SJC](https://sjc.com.vn/gia-vang-online) hay trang chủ. Nếu cả các trang chính thức đều trả HTML trống hoặc chặn Worker, không thể bảo đảm cập nhật tự động bằng scraping và cần dùng API được SJC cấp phép hoặc một nguồn dữ liệu được chấp thuận khác.
 - Nếu xăng không hiện: xác nhận bảng HTML có dòng `Xăng E10 RON 95-III` và Vùng 1 ở cột đầu.
 - Nếu cả ba không hiện: kiểm tra KV binding, Cron Triggers và Worker logs.
 - Nếu giá không đổi: kiểm tra **niêm yết** so với **lần kiểm tra thành công**; nguồn có thể giữ nguyên giá ngoài giờ/kỳ điều hành.
 
 Dữ liệu tham khảo, không phải tư vấn đầu tư hay báo giá để đặt lệnh.
+
+## Biểu tượng iPhone và Android
+
+- Favicon trình duyệt dùng SVG `public/favicon.svg`.
+- iOS Add to Home Screen dùng PNG `public/apple-touch-icon.png` kích thước **180x180**, nền kín, không bo góc trong ảnh vì iOS tự xử lý.
+- Manifest PWA dùng PNG `icon-192.png` và `icon-512.png` để tránh phụ thuộc hỗ trợ SVG của launcher.
+- Sau khi deploy bản mới, **xóa shortcut cũ trên màn hình chính rồi thêm lại từ Safari**. iOS có thể giữ icon cũ trong cache dù nội dung web đã cập nhật.
