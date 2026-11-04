@@ -1,7 +1,7 @@
 {
   "name": "Giá Hôm Nay",
   "short_name": "Giá Hôm Nay",
-  "description": "Giá vàng SJC Miền Bắc, XAU/USD và xăng E10 RON95-III",
+  "description": "Giá vàng SJC chính thức, XAU/USD và xăng E10 RON95-III",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#f6f4ef",
