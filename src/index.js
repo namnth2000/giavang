@@ -38,8 +38,32 @@ export function shouldCollectFuel(time) {
   return new Date(time).getUTCHours() % 6 === 0;
 }
 
+// Upgrade cached snapshots and discard quotes previously collected from
+// third-party SJC sources. Never relabel legacy data as SJC official.
+export function normalizeSnapshot(saved) {
+  const snapshot = defaultSnapshot();
+  if (!saved || saved.version !== 1 || !saved.prices) return snapshot;
+  snapshot.generatedAt = saved.generatedAt || null;
+  for (const id of Object.keys(COLLECTORS)) {
+    const existing = saved.prices[id];
+    if (!existing || typeof existing !== "object") continue;
+    if (id === "sjc" && existing.source?.url !== SOURCES.sjc.url) continue;
+    const metadata = emptyPrice(id);
+    snapshot.prices[id] = {
+      ...metadata,
+      ...existing,
+      label: metadata.label,
+      unit: metadata.unit,
+      region: metadata.region,
+      intervalHours: metadata.intervalHours,
+      source: metadata.source,
+    };
+  }
+  return snapshot;
+}
+
 export async function updateSnapshot(previous, at, collectors = COLLECTORS) {
-  const current = previous && previous.version === 1 && previous.prices ? previous : defaultSnapshot();
+  const current = normalizeSnapshot(previous);
   const time = new Date(at).toISOString();
   const ids = ["sjc", "xau", ...(shouldCollectFuel(at) ? ["fuel"] : [])];
   const results = await Promise.allSettled(ids.map((id) => collectors[id]()));
@@ -89,7 +113,7 @@ export default {
       if (!env.PRICES) return json({ error: "Chưa cấu hình Cloudflare KV." }, 503);
       try {
         const saved = await env.PRICES.get(STORE_KEY, { type: "json" });
-        const snapshot = saved && saved.version === 1 ? saved : defaultSnapshot();
+        const snapshot = normalizeSnapshot(saved);
         return request.method === "HEAD" ? new Response(null, { headers: { "cache-control": "public, max-age=60" } }) : json(snapshot);
       } catch (error) {
         console.error("KV read failed", error);
