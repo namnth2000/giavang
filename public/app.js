@@ -23,16 +23,24 @@ function setStatus(id, item) {
   const age = item?.checkedAt ? Date.now() - Date.parse(item.checkedAt) : Infinity;
   const late = Number.isFinite(age) && age > (item?.intervalHours || (id === "fuel" ? 6 : 1)) * 3 * 3600000;
   const missing = !item?.checkedAt;
-  node.classList.toggle("status-warning", Boolean(item?.error || late || missing));
+  const quoteAge = item?.quotedAt ? Date.now() - Date.parse(item.quotedAt) : null;
+  const oldPublication = quoteAge !== null && Number.isFinite(quoteAge) && quoteAge > 24 * 3600000;
+  node.classList.toggle("status-warning", Boolean(item?.error || late || missing || oldPublication));
 
-  if (missing) node.textContent = item?.error ? "Nguồn chưa có dữ liệu" : "Chờ lần thu thập đầu tiên";
-  else if (item?.error) node.textContent = "Nguồn lỗi - đang hiển thị giá cũ";
-  else if (late) node.textContent = "Dữ liệu chậm cập nhật";
-  else node.textContent = "Đã kiểm tra nguồn";
+  if (missing) node.textContent = item?.error ? "Chưa lấy được giá từ nguồn" : "Chờ lần thu thập đầu tiên";
+  else if (item?.error) node.textContent = "Lần kiểm tra mới lỗi - giữ giá đã xác thực";
+  else if (late) node.textContent = "Đã lâu chưa kiểm tra thành công";
+  else if (oldPublication) node.textContent = "Nguồn chưa công bố giá mới";
+  else node.textContent = "Đã đối chiếu với nguồn";
 
   const checked = when(item?.checkedAt);
   const quoted = when(item?.quotedAt);
-  time.textContent = [checked ? "Kiểm tra: " + checked : "Chưa kiểm tra thành công", quoted ? "Niêm yết: " + quoted : null].filter(Boolean).join(" | ");
+  const attempted = item?.error && when(item?.lastAttemptAt);
+  time.textContent = [
+    checked ? "Đối chiếu: " + checked : "Chưa kiểm tra thành công",
+    quoted ? "Niêm yết: " + quoted : null,
+    attempted ? "Lỗi lúc: " + attempted : null,
+  ].filter(Boolean).join(" | ");
 
   const link = byId(id + "-source");
   if (item?.source?.url && /^https:\/\//.test(item.source.url)) {
@@ -69,7 +77,7 @@ function render(data) {
       ? available + "/3 mức giá có dữ liệu. Một số nguồn đang lỗi; giá cũ được giữ lại và ghi rõ thời gian."
       : available < 3
         ? available + "/3 mức giá đã có dữ liệu. Các mức còn lại đang chờ cập nhật."
-        : "Đang hiển thị 3 mức giá đã thu thập. Nhấn Tải lại để kiểm tra dữ liệu mới trên website.";
+        : "Đã tải 3 mức giá đã kiểm tra. Giá chỉ thay đổi khi nguồn công bố mức mới.";
 }
 
 let loading = false;
