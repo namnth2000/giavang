@@ -75,7 +75,7 @@ test("partial source failures preserve last valid prices and flag error", async 
   assert.ok(updated.prices.sjc.error);
   assert.equal(updated.prices.xau.price, 4100);
   assert.equal(updated.prices.fuel.price, 24000);
-  assert.equal(updated.prices.fuel.lastAttemptAt, undefined);
+  assert.equal(updated.prices.fuel.lastAttemptAt, null);
 });
 
 test("legacy third-party SJC cache is discarded, not mislabeled official", () => {
