@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { SOURCES, parseSjc, parseFuel, parseXau } from "../src/sources.js";
-import { normalizeSnapshot, shouldCollectFuel, updateSnapshot } from "../src/index.js";
+import { normalizeSnapshot, updateSnapshot } from "../src/index.js";
 
 test("official SJC online quote: exact bar row, full VND values", () => {
   const html = `<h1>Bảng giá vàng SJC</h1><p>Cập nhật lúc: 11:16 03/11/2026</p>
@@ -52,12 +52,6 @@ test("reject invalid data, never invent prices", () => {
   assert.equal(parseXau({ symbol: "XAU", price: 4010.25, updatedAt: "2026-11-03T01:00:00Z" }).price, 4010.25);
 });
 
-test("fuel schedule uses UTC at 00, 06, 12, 18", () => {
-  assert.equal(shouldCollectFuel("2026-11-03T00:00:00Z"), true);
-  assert.equal(shouldCollectFuel("2026-11-03T01:00:00Z"), false);
-  assert.equal(shouldCollectFuel("2026-11-03T18:00:00Z"), true);
-});
-
 test("partial source failures preserve last valid prices and flag error", async () => {
   const previous = {
     version: 1,
@@ -69,13 +63,15 @@ test("partial source failures preserve last valid prices and flag error", async 
   const updated = await updateSnapshot(previous, "2026-11-03T01:00:00Z", {
     sjc: async () => { throw new Error("upstream down"); },
     xau: async () => ({ price: 4100, quotedAt: null }),
-    fuel: async () => { throw new Error("should not fetch fuel"); },
+    fuel: async () => { throw new Error("fuel upstream down"); },
   });
   assert.equal(updated.prices.sjc.buy, 135000000);
   assert.ok(updated.prices.sjc.error);
   assert.equal(updated.prices.xau.price, 4100);
   assert.equal(updated.prices.fuel.price, 24000);
-  assert.equal(updated.prices.fuel.lastAttemptAt, null);
+  assert.equal(updated.prices.fuel.checkedAt, previous.prices.fuel.checkedAt);
+  assert.equal(updated.prices.fuel.lastAttemptAt, "2026-11-03T01:00:00.000Z");
+  assert.ok(updated.prices.fuel.error);
 });
 
 test("legacy third-party SJC cache is discarded, not mislabeled official", () => {

@@ -34,10 +34,6 @@ function defaultSnapshot() {
   };
 }
 
-export function shouldCollectFuel(time) {
-  return new Date(time).getUTCHours() % 6 === 0;
-}
-
 // Upgrade cached snapshots and discard quotes previously collected from
 // third-party SJC sources. Never relabel legacy data as SJC official.
 export function normalizeSnapshot(saved) {
@@ -65,7 +61,7 @@ export function normalizeSnapshot(saved) {
 export async function updateSnapshot(previous, at, collectors = COLLECTORS) {
   const current = normalizeSnapshot(previous);
   const time = new Date(at).toISOString();
-  const ids = ["sjc", "xau", ...(shouldCollectFuel(at) ? ["fuel"] : [])];
+  const ids = Object.keys(COLLECTORS);
   const results = await Promise.allSettled(ids.map((id) => collectors[id]()));
   const prices = { ...current.prices };
 

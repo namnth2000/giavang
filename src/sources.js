@@ -5,7 +5,7 @@ export const SOURCES = Object.freeze({
     url: "https://sjc.com.vn/gia-vang-online",
     region: "Việt Nam",
     unit: "VND/lượng",
-    intervalHours: 1,
+    intervalHours: 0.25,
   },
   xau: {
     name: "Gold API",
@@ -13,7 +13,7 @@ export const SOURCES = Object.freeze({
     endpoint: "https://api.gold-api.com/price/XAU",
     region: "Thế giới",
     unit: "USD/oz",
-    intervalHours: 1,
+    intervalHours: 0.25,
   },
   fuel: {
     name: "WebGia.TV (theo Petrolimex)",
@@ -21,7 +21,7 @@ export const SOURCES = Object.freeze({
     officialUrl: "https://petrolimex.com.vn/ndi/gia-ban-le.html",
     region: "Petrolimex - Vùng 1 (Hà Nội)",
     unit: "VND/lít",
-    intervalHours: 6,
+    intervalHours: 0.25,
   },
 });
 

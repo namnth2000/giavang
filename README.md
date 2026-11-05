@@ -22,10 +22,9 @@ SJC được lấy trực tiếp từ website chính thức (HTML, không phải
 
 ## Lịch cập nhật
 
-Một Cron Trigger `0 * * * *` chạy mỗi giờ (theo UTC):
+Một Cron Trigger `*/15 * * * *` chạy mỗi 15 phút, tại phút 00, 15, 30, 45 của mỗi giờ (theo UTC):
 
-- SJC và XAU/USD: mỗi 1 giờ.
-- Xăng: tại 00, 06, 12, 18 UTC, tức **07:00, 13:00, 19:00, 01:00** giờ Việt Nam.
+- Mỗi lần Cron chạy đều lấy cả 3 giá: SJC, XAU/USD và xăng E10 RON95-III, không có lịch riêng cho xăng.
 - Mỗi chu kỳ chỉ ghi **một** snapshot JSON vào KV.
 - `quotedAt` là thời điểm nguồn niêm yết (nếu công khai); `checkedAt` là thời điểm hệ thống lấy **thành công**. Không đồng nhất hai mốc này.
 - Nếu thất bại một nguồn, không ghi đè giá đã xác thực. Website thông báo giá cũ.
@@ -40,7 +39,7 @@ Yêu cầu Node.js >= 20 và tài khoản Cloudflare.
 3. Lấy ID từ kết quả và thay `REPLACE_WITH_YOUR_KV_NAMESPACE_ID` trong `wrangler.jsonc`.
 4. Chạy `npm test` để thử parser và lịch thu thập.
 5. Chạy `npm run dev` rồi mở `http://localhost:8787`.
-6. Khởi tạo dữ liệu ở môi trường local bằng `curl "http://localhost:8787/cdn-cgi/local/scheduled?cron=0+*+*+*+*"`. Lúc này chỉ có giá khi nguồn cho phép truy cập từ Worker.
+6. Khởi tạo dữ liệu ở môi trường local bằng `curl "http://localhost:8787/cdn-cgi/local/scheduled?cron=%2A%2F15%20%2A%20%2A%20%2A%20%2A"`. Lúc này chỉ có giá khi nguồn cho phép truy cập từ Worker.
 7. Đăng nhập Cloudflare nếu cần với `npx wrangler login` và chạy `npm run deploy`.
 
 Sau khi deploy, lần Cron đầu tiên mới thu thập snapshot production, nên trang có thể báo "Chờ lần thu thập đầu tiên". Kiểm tra trang và endpoint `/api/prices` sau một kỳ chạy. Cron có thể không chạy đúng phút tuyệt đối.
