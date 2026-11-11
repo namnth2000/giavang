@@ -2,7 +2,7 @@ import { SOURCES, fetchSjc, fetchXau, fetchFuel } from "./sources.js";
 
 const STORE_KEY = "latest-prices-v1";
 const COLLECTORS = { sjc: fetchSjc, xau: fetchXau, fuel: fetchFuel };
-const LABELS = { sjc: "Vàng miếng SJC 1 lượng", xau: "Vàng thế giới XAU/USD", fuel: "Xăng E10 RON95-III" };
+const LABELS = { sjc: "Vàng miếng SJC 1 lượng", xau: "Vàng thế giới XAU/USD", fuel: "Xăng E10 RON 95-V" };
 
 function emptyPrice(id) {
   return {
@@ -44,6 +44,8 @@ export function normalizeSnapshot(saved) {
     const existing = saved.prices[id];
     if (!existing || typeof existing !== "object") continue;
     if (id === "sjc" && existing.source?.url !== SOURCES.sjc.url) continue;
+    // A cached quote must belong to the selected fuel product before reuse.
+    if (id === "fuel" && existing.label !== LABELS.fuel) continue;
     const metadata = emptyPrice(id);
     snapshot.prices[id] = {
       ...metadata,

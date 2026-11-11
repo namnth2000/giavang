@@ -37,12 +37,12 @@ test("official SJC parser rejects wrong products and ambiguous regional quotes",
   </table>`));
 });
 
-test("fuel selects III, Vùng 1, not V or change column", () => {
+test("fuel selects V, Vùng 1, not III or change column", () => {
   const html = `<table>
     <tr><td>Xăng E10 RON 95-V</td><td>24.950</td><td>25.440</td></tr>
     <tr><td>Xăng E10 RON 95-III</td><td>24.150 ▼ 1.580</td><td>-1.580</td><td>24.630</td><td>31/10/2026</td></tr>
   </table><p>Hiệu lực từ 01/11/2026 00:00</p>`;
-  assert.deepEqual(parseFuel(html), { price: 24150, quotedAt: "2026-10-31T17:00:00.000Z" });
+  assert.deepEqual(parseFuel(html), { price: 24950, quotedAt: "2026-10-31T17:00:00.000Z" });
 });
 
 test("reject invalid data, never invent prices", () => {
@@ -57,7 +57,7 @@ test("partial source failures preserve last valid prices and flag error", async 
     version: 1,
     prices: {
       sjc: { buy: 135000000, sell: 138000000, checkedAt: "2026-11-02T00:00:00Z", source: { url: SOURCES.sjc.url } },
-      fuel: { price: 24000, checkedAt: "2026-11-02T00:00:00Z" },
+      fuel: { price: 24000, label: "Xăng E10 RON 95-V", checkedAt: "2026-11-02T00:00:00Z" },
     },
   };
   const updated = await updateSnapshot(previous, "2026-11-03T01:00:00Z", {

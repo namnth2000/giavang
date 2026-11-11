@@ -4,7 +4,7 @@ Bảng giá tối giản theo dõi đúng 3 sản phẩm:
 
 - **Vàng miếng SJC 1L, 10L, 1KG**: bảng giá công bố chính thức của SJC, đơn vị VND/lượng; mua và bán.
 - **Vàng thế giới XAU/USD**: giá giao ngay USD/oz.
-- **Xăng E10 RON95-III**: giá bán lẻ **Petrolimex Vùng 1** tại Hà Nội, đơn vị VND/lít.
+- **Xăng E10 RON 95-V**: giá bán lẻ **Petrolimex Vùng 1** tại Hà Nội, đơn vị VND/lít.
 
 Không có đăng nhập, biểu đồ, lịch sử, quảng cáo, React hay database SQL. Giao diện viết bằng HTML/CSS/JavaScript thuần; một Cloudflare Worker phục vụ API và assets; một KV namespace lưu snapshot.
 
@@ -14,7 +14,7 @@ Không có đăng nhập, biểu đồ, lịch sử, quảng cáo, React hay dat
 | --- | --- | --- |
 | SJC | [SJC - Giá Vàng Online](https://sjc.com.vn/gia-vang-online), lấy đúng dòng **Vàng SJC 1L, 10L, 1KG** | [Trang chính thức SJC](https://sjc.com.vn/) (dự phòng) |
 | XAU/USD | [Gold API](https://gold-api.com/docs), endpoint `/price/XAU` | Gold API |
-| Xăng | [WebGia.TV - Petrolimex](https://webgia.tv/xang-dau/petrolimex), lấy **đúng E10 RON 95-III / Vùng 1** | [Petrolimex chính thức](https://petrolimex.com.vn/ndi/gia-ban-le.html) |
+| Xăng | [WebGia.TV - Petrolimex](https://webgia.tv/xang-dau/petrolimex), lấy **đúng E10 RON 95-V / Vùng 1** | [Petrolimex chính thức](https://petrolimex.com.vn/ndi/gia-ban-le.html) |
 
 **Quan trọng:** Không chọn giá SJC theo tỉnh/thành. Bộ thu thập lần lượt thử `sjc.com.vn/gia-vang-online`, `www.sjc.com.vn/gia-vang-online` và hai trang chủ SJC chính thức. Parser hỗ trợ cả bảng `tr/td` và dòng giá dạng `div/span`; khi không có giá sẽ báo lỗi thay vì lấy số ở sản phẩm kế tiếp. Chỉ sử dụng các dòng vàng miếng 1L khớp nhau khi trang chủ có nhiều khu vực; nếu khác nhau sẽ báo lỗi thay vì tự nhận là giá chung. Giá xăng Vùng 1 là mức Petrolimex công bố, không đảm bảo áp dụng tại mọi cửa hàng độc lập.
 
@@ -24,7 +24,7 @@ SJC được lấy trực tiếp từ website chính thức (HTML, không phải
 
 Một Cron Trigger `*/15 * * * *` chạy mỗi 15 phút, tại phút 00, 15, 30, 45 của mỗi giờ (theo UTC):
 
-- Mỗi lần Cron chạy đều lấy cả 3 giá: SJC, XAU/USD và xăng E10 RON95-III, không có lịch riêng cho xăng.
+- Mỗi lần Cron chạy đều lấy cả 3 giá: SJC, XAU/USD và xăng E10 RON 95-V, không có lịch riêng cho xăng.
 - Mỗi chu kỳ chỉ ghi **một** snapshot JSON vào KV.
 - `quotedAt` là thời điểm nguồn niêm yết (nếu công khai); `checkedAt` là thời điểm hệ thống lấy **thành công**. Không đồng nhất hai mốc này.
 - Nếu thất bại một nguồn, không ghi đè giá đã xác thực. Website thông báo giá cũ.
@@ -61,7 +61,7 @@ wrangler.jsonc        # Worker, KV binding và cron
 - Nếu XAU không hiện: kiểm tra endpoint Gold API hoặc response shape.
 - Nếu SJC hiển thị giá cũ: xem mốc **Đối chiếu** (lần lấy thành công) và **Niêm yết** (mốc SJC công bố). Nếu có **Lần kiểm tra mới lỗi**, Worker chưa lấy được giá mới và vẫn giữ giá đã xác thực. Bấm Tải lại chỉ đọc KV, không gọi trực tiếp SJC.
 - Nếu SJC không hiện: kiểm tra `wrangler tail` và HTML thực tế trả về từ [giá vàng SJC](https://sjc.com.vn/gia-vang-online) hay trang chủ. Nếu cả các trang chính thức đều trả HTML trống hoặc chặn Worker, không thể bảo đảm cập nhật tự động bằng scraping và cần dùng API được SJC cấp phép hoặc một nguồn dữ liệu được chấp thuận khác.
-- Nếu xăng không hiện: xác nhận bảng HTML có dòng `Xăng E10 RON 95-III` và Vùng 1 ở cột đầu.
+- Nếu xăng không hiện: xác nhận bảng HTML có dòng `Xăng E10 RON 95-V` và Vùng 1 ở cột đầu.
 - Nếu cả ba không hiện: kiểm tra KV binding, Cron Triggers và Worker logs.
 - Nếu giá không đổi: kiểm tra **niêm yết** so với **lần kiểm tra thành công**; nguồn có thể giữ nguyên giá ngoài giờ/kỳ điều hành.
 

@@ -136,10 +136,10 @@ export function parseSjc(html) {
 
 export function parseFuel(html) {
   const rows = extractRows(html);
-  const row = rows.find((cells) => cells.some((cell) => /xăng\s*e10\s*ron\s*95\s*[-–]?\s*iii\b/i.test(cell)));
-  if (!row) throw new Error("Missing E10 RON95-III row");
-  const index = row.findIndex((cell) => /xăng\s*e10\s*ron\s*95\s*[-–]?\s*iii\b/i.test(cell));
-  const price = row.slice(index + 1).map((cell) => valueFromCell(cell, 5_000, 100_000)).find((v) => v !== null);
+  const row = rows.find((cells) => cells.some((cell) => /^xăng\s+e10\s+ron\s*95\s*[-–]?\s*v$/i.test(cell)));
+  if (!row) throw new Error("Missing E10 RON 95-V row");
+  const index = row.findIndex((cell) => /^xăng\s+e10\s+ron\s*95\s*[-–]?\s*v$/i.test(cell));
+  const price = valueFromCell(row[index + 1] || "", 5_000, 100_000);
   if (!price) throw new Error("Missing Petrolimex Vùng 1 price");
   const text = plain(html);
   // Use only an explicitly published effective date; an article check time is not a price date.
