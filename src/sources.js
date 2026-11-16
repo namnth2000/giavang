@@ -15,6 +15,14 @@ export const SOURCES = Object.freeze({
     unit: "USD/oz",
     intervalHours: 0.25,
   },
+  fuelIII: {
+    name: "WebGia.TV (theo Petrolimex)",
+    url: "https://webgia.tv/xang-dau/petrolimex",
+    officialUrl: "https://petrolimex.com.vn/ndi/gia-ban-le.html",
+    region: "Petrolimex - Vùng 1 (Hà Nội)",
+    unit: "VND/lít",
+    intervalHours: 0.25,
+  },
   fuel: {
     name: "WebGia.TV (theo Petrolimex)",
     url: "https://webgia.tv/xang-dau/petrolimex",
@@ -134,11 +142,20 @@ export function parseSjc(html) {
   return { buy, sell, quotedAt: stamp ? vietnamDate(stamp[2], stamp[1]) : null };
 }
 
+export function parseFuelIII(html) {
+  return parseFuelProduct(html, "III");
+}
+
 export function parseFuel(html) {
+  return parseFuelProduct(html, "V");
+}
+
+function parseFuelProduct(html, grade) {
+  const product = new RegExp("^xăng\\s+e10\\s+ron\\s*95\\s*[-–]?\\s*" + grade + "$", "i");
   const rows = extractRows(html);
-  const row = rows.find((cells) => cells.some((cell) => /^xăng\s+e10\s+ron\s*95\s*[-–]?\s*v$/i.test(cell)));
-  if (!row) throw new Error("Missing E10 RON 95-V row");
-  const index = row.findIndex((cell) => /^xăng\s+e10\s+ron\s*95\s*[-–]?\s*v$/i.test(cell));
+  const row = rows.find((cells) => cells.some((cell) => product.test(cell)));
+  if (!row) throw new Error("Missing E10 RON 95-" + grade + " row");
+  const index = row.findIndex((cell) => product.test(cell));
   const price = valueFromCell(row[index + 1] || "", 5_000, 100_000);
   if (!price) throw new Error("Missing Petrolimex Vùng 1 price");
   const text = plain(html);
@@ -200,4 +217,8 @@ export async function fetchXau() {
 
 export async function fetchFuel() {
   return parseFuel(await request(SOURCES.fuel.url));
+}
+
+export async function fetchFuelIII() {
+  return parseFuelIII(await request(SOURCES.fuelIII.url));
 }

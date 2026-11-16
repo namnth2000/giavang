@@ -63,6 +63,7 @@ test("partial source failures preserve last valid prices and flag error", async 
   const updated = await updateSnapshot(previous, "2026-11-03T01:00:00Z", {
     sjc: async () => { throw new Error("upstream down"); },
     xau: async () => ({ price: 4100, quotedAt: null }),
+    fuelIII: async () => ({ price: 22000 }),
     fuel: async () => { throw new Error("fuel upstream down"); },
   });
   assert.equal(updated.prices.sjc.buy, 135000000);

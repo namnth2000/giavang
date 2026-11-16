@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import worker, { normalizeSnapshot, updateSnapshot } from "../src/index.js";
-import { parseFuel } from "../src/sources.js";
+import { parseFuel, parseFuelIII, fetchFuelIII, SOURCES } from "../src/sources.js";
 
 const label = "Xăng E10 RON 95-V";
 const table = `<table>
@@ -36,7 +36,7 @@ test("V cache survives a source failure and is refreshed on recovery", async (t)
   t.mock.method(console, "warn", () => {});
   const previous = { version: 1, prices: { fuel: { label, price: 22650, checkedAt: "2026-11-11T00:00:00Z" } } };
   assert.equal(normalizeSnapshot(previous).prices.fuel.price, 22650);
-  const collectors = { sjc: async () => ({}), xau: async () => ({}), fuel: async () => { throw new Error("Unavailable"); } };
+  const collectors = { sjc: async () => ({}), xau: async () => ({}), fuelIII: async () => ({}), fuel: async () => { throw new Error("Unavailable"); } };
   const failed = await updateSnapshot(previous, "2026-11-11T00:15:00Z", collectors);
   assert.equal(failed.prices.fuel.price, 22650);
   assert.equal(failed.prices.fuel.checkedAt, previous.prices.fuel.checkedAt);
@@ -46,4 +46,49 @@ test("V cache survives a source failure and is refreshed on recovery", async (t)
   assert.equal(recovered.prices.fuel.price, 22650);
   assert.equal(recovered.prices.fuel.error, null);
   assert.equal(recovered.prices.fuel.checkedAt, "2026-11-11T00:30:00.000Z");
+});
+
+test("III reads its own Vung 1 price and rejects V, wrong blends and missing prices", () => {
+  assert.deepEqual(parseFuelIII(table), { price: 21150, quotedAt: "2026-11-05T08:00:00.000Z" });
+  for (const product of ["Xăng E10 RON 95-V", "Xăng E10 RON 95-IIIA", "Xăng E5 RON 95-III"]) {
+    assert.throws(() => parseFuelIII(table.replace("Xăng E10 RON 95-III</td>", product + "</td>")), /Missing E10 RON 95-III/);
+  }
+  assert.throws(() => parseFuelIII(table.replace("21.150", "--")), /Vùng 1/);
+});
+
+test("III collector reads the configured Petrolimex source", async (t) => {
+  const mock = t.mock.method(globalThis, "fetch", async (url) => {
+    assert.equal(url, SOURCES.fuelIII.url);
+    return new Response(table);
+  });
+  assert.equal((await fetchFuelIII()).price, 21150);
+  assert.equal(mock.mock.callCount(), 1);
+});
+
+test("adding III preserves V cache and never relabels another product as III", () => {
+  const previous = { version: 1, prices: { fuel: { label, price: 22650 } } };
+  const snapshot = normalizeSnapshot(previous);
+  assert.equal(snapshot.prices.fuel.price, 22650);
+  assert.equal(snapshot.prices.fuelIII.price, null);
+  assert.equal(snapshot.prices.fuelIII.label, "Xăng E10 RON 95-III");
+  for (const wrongLabel of [label, undefined]) {
+    assert.equal(normalizeSnapshot({ version: 1, prices: { fuelIII: { label: wrongLabel, price: 22650 } } }).prices.fuelIII.price, null);
+  }
+});
+
+test("III and V retain their own last quote when either source fails", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const collectors = { sjc: async () => ({}), xau: async () => ({}), fuelIII: async () => parseFuelIII(table), fuel: async () => parseFuel(table) };
+  const previous = await updateSnapshot(null, "2026-11-16T00:00:00Z", collectors);
+  for (const id of ["fuelIII", "fuel"]) {
+    const other = id === "fuelIII" ? "fuel" : "fuelIII";
+    const failed = await updateSnapshot(previous, "2026-11-16T00:15:00Z", { ...collectors, [id]: async () => { throw new Error("Unavailable"); } });
+    assert.equal(failed.prices[id].price, previous.prices[id].price);
+    assert.equal(failed.prices[id].checkedAt, previous.prices[id].checkedAt);
+    assert.ok(failed.prices[id].error);
+    assert.equal(failed.prices[other].error, null);
+    assert.equal(failed.prices[other].checkedAt, "2026-11-16T00:15:00.000Z");
+    const recovered = await updateSnapshot(failed, "2026-11-16T00:30:00Z", collectors);
+    assert.equal(recovered.prices[id].error, null);
+  }
 });

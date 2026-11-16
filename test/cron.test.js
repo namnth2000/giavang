@@ -4,10 +4,11 @@ import { readFileSync } from "node:fs";
 import worker, { updateSnapshot } from "../src/index.js";
 import { SOURCES } from "../src/sources.js";
 
-const ids = ["sjc", "xau", "fuel"];
+const ids = ["sjc", "xau", "fuelIII", "fuel"];
 const quotes = {
   sjc: { buy: 135000000, sell: 138000000, quotedAt: "2026-11-04T00:00:00Z" },
   xau: { price: 4100, quotedAt: "2026-11-04T00:00:00Z" },
+  fuelIII: { price: 22000, quotedAt: "2026-11-04T00:00:00Z" },
   fuel: { price: 24000, quotedAt: "2026-11-04T00:00:00Z" },
 };
 const collectors = Object.fromEntries(ids.map((id) => [id, async () => quotes[id]]));
@@ -17,7 +18,7 @@ test("Cloudflare has a single Cron trigger every 15 minutes", () => {
   assert.deepEqual(config.triggers.crons, ["*/15 * * * *"]);
 });
 
-test("every quarter-hour in a UTC day collects all three prices once", async () => {
+test("every quarter-hour in a UTC day collects all four prices once", async () => {
   for (let hour = 0; hour < 24; hour++) {
     for (const minute of [0, 15, 30, 45]) {
       const at = Date.UTC(2026, 10, 5, hour, minute);
@@ -43,7 +44,7 @@ test("individual and total failures preserve valid quotes and recover on the nex
   t.mock.method(console, "warn", () => {});
   const previous = await updateSnapshot(null, "2026-11-05T01:00:00Z", collectors);
   const original = structuredClone(previous);
-  for (const failed of [["sjc"], ["xau"], ["fuel"], ids]) {
+  for (const failed of [["sjc"], ["xau"], ["fuelIII"], ["fuel"], ids]) {
     const at = "2026-11-05T01:15:00.000Z";
     const snapshot = await updateSnapshot(previous, at, Object.fromEntries(ids.map((id) => [id, async () => {
       if (failed.includes(id)) throw new Error("Upstream unavailable");

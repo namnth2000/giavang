@@ -52,32 +52,35 @@ function render(data) {
   const items = data?.prices || {};
   const sjc = items.sjc || {};
   const xau = items.xau || {};
+  const fuelIII = items.fuelIII || {};
   const fuel = items.fuel || {};
   byId("sjc-buy").textContent = money(sjc.buy);
   byId("sjc-sell").textContent = money(sjc.sell);
   byId("sjc-spread").textContent = Number.isFinite(sjc.buy) && Number.isFinite(sjc.sell) && sjc.sell >= sjc.buy
     ? nfVnd.format(sjc.sell - sjc.buy) + " đ" : "--";
   byId("xau-price").textContent = money(xau.price, "usd");
+  byId("fuelIII-price").textContent = money(fuelIII.price);
   byId("fuel-price").textContent = money(fuel.price);
 
-  for (const [id, item] of Object.entries({ sjc, xau, fuel })) setStatus(id, item);
+  for (const [id, item] of Object.entries({ sjc, xau, fuelIII, fuel })) setStatus(id, item);
 
   const available = [
     Number.isFinite(sjc.buy) && Number.isFinite(sjc.sell),
     Number.isFinite(xau.price),
+    Number.isFinite(fuelIII.price),
     Number.isFinite(fuel.price),
   ].filter(Boolean).length;
-  const failed = [sjc, xau, fuel].filter((item) => item.error).length;
+  const failed = [sjc, xau, fuelIII, fuel].filter((item) => item.error).length;
   const notice = byId("page-status");
   notice.classList.toggle("error", available === 0);
   notice.classList.toggle("warning", available > 0 && failed > 0);
   byId("page-status-text").textContent = available === 0
     ? "Chưa có dữ liệu. Hệ thống sẽ ghi nhận giá sau lần chạy thu thập đầu tiên."
     : failed
-      ? available + "/3 mức giá có dữ liệu. Một số nguồn đang lỗi; giá cũ được giữ lại và ghi rõ thời gian."
-      : available < 3
-        ? available + "/3 mức giá đã có dữ liệu. Các mức còn lại đang chờ cập nhật."
-        : "Đã tải 3 mức giá đã kiểm tra. Giá chỉ thay đổi khi nguồn công bố mức mới.";
+      ? available + "/4 mức giá có dữ liệu. Một số nguồn đang lỗi; giá cũ được giữ lại và ghi rõ thời gian."
+      : available < 4
+        ? available + "/4 mức giá đã có dữ liệu. Các mức còn lại đang chờ cập nhật."
+        : "Đã tải 4 mức giá đã kiểm tra. Giá chỉ thay đổi khi nguồn công bố mức mới.";
 }
 
 let loading = false;
